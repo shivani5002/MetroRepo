@@ -46,3 +46,63 @@
   </build>
 
 </project>
+
+C:\Users\Admin>cd C:\Users\Admin\AppData\Local\Android\Sdk\emulator
+C:\Users\Admin\AppData\Local\Android\Sdk\emulator>emulator -list-avds
+Medium_Phone_API_36.1
+Pixel_2
+Pixel_9
+C:\Users\Admin\AppData\Local\Android\Sdk\emulator>emulator -avd Pixel_9 -http-proxy 
+http://10.0.2.2:8080
+In AVD
+Settings-> Network and Internet-> internet->select icon  -> top right corner there is edit->advanced options -> proxy->Change proxy None->Manual->Hostname as 10.0.2.2 ->save
+C:\Users\Admin>cd C:\Users\Admin\AppData\Local\Android\Sdk\platform-tools
+C:\Users\Admin\AppData\Local\Android\Sdk\platform-tools>adb devices
+List of devices attached
+emulator-5554   device
+C:\Users\Admin\AppData\Local\Android\Sdk\platform-tools>adb shell settings put global http_proxy 10.0.2.2:8080
+C:\Users\Admin\AppData\Local\Android\Sdk\platform-tools>adb shell settings get global http_proxy
+10.0.2.2:8080
+Go procy->options/proxy settings->under Proxy Listeners->Edit->select All interfaces->ok
+Go proxy->intercept on
+Go procy->options/proxy settings->import/export CA certificate->Certificate in DER format->select file-> Downloads->give name as burpcer.der
+C:\Users\Admin\AppData\Local\Android\Sdk\platform-tools>adb push C:\Users\Admin\Downloads\burpcer.cer /sdcard/Download/
+To install Certificate in AVD
+Settings
+→ Security & privacy
+→ More security & privacy
+→ Encryption & credentials
+→ Install a certificate
+→ CA certificate
+In AVD we can see burpcer.der certificate
+
+admin@juice-sh.op
+admin123
+
+echo "Cybersecurity Lab Evidence" > evidence.txt
+dd if=/dev/zero of=practice_disk.dd bs=1M count=100
+mkfs.ext4 practice_disk.dd
+sudo apt install dc3dd
+sudo dc3dd if=practice_disk.dd of=disk_image.dd hash=md5 log=acquisition.log
+ls -lh /home/kali/disk_image.dd
+cat /home/kali/acquisition.log
+sudo autopsy
+
+cd /var/log
+ls
+journalctl | grep "Failed"
+journalctl | grep ssh
+journalctl | grep -i error
+cd /var/log/apache2 ls
+grep "404" /var/log/apache2/access.log
+sudo journalctl -f
+less /var/log/dpkg.log
+sudo apt install openssh-server –y
+sudo service ssh start
+ip a
+ssh fakeuser@localhost
+journalctl | grep "Failed password"
+journalctl | grep "Failed password" | awk '{print $11}'
+journalctl | grep "Failed password" | awk '{print $11}' | sort
+| uniq -c | sort -nr
+
