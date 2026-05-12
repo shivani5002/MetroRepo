@@ -47,62 +47,167 @@
 
 </project>
 
-C:\Users\Admin>cd C:\Users\Admin\AppData\Local\Android\Sdk\emulator
-C:\Users\Admin\AppData\Local\Android\Sdk\emulator>emulator -list-avds
-Medium_Phone_API_36.1
-Pixel_2
-Pixel_9
-C:\Users\Admin\AppData\Local\Android\Sdk\emulator>emulator -avd Pixel_9 -http-proxy 
-http://10.0.2.2:8080
-In AVD
-Settings-> Network and Internet-> internet->select icon  -> top right corner there is edit->advanced options -> proxy->Change proxy None->Manual->Hostname as 10.0.2.2 ->save
-C:\Users\Admin>cd C:\Users\Admin\AppData\Local\Android\Sdk\platform-tools
-C:\Users\Admin\AppData\Local\Android\Sdk\platform-tools>adb devices
-List of devices attached
-emulator-5554   device
-C:\Users\Admin\AppData\Local\Android\Sdk\platform-tools>adb shell settings put global http_proxy 10.0.2.2:8080
-C:\Users\Admin\AppData\Local\Android\Sdk\platform-tools>adb shell settings get global http_proxy
-10.0.2.2:8080
-Go procy->options/proxy settings->under Proxy Listeners->Edit->select All interfaces->ok
-Go proxy->intercept on
-Go procy->options/proxy settings->import/export CA certificate->Certificate in DER format->select file-> Downloads->give name as burpcer.der
-C:\Users\Admin\AppData\Local\Android\Sdk\platform-tools>adb push C:\Users\Admin\Downloads\burpcer.cer /sdcard/Download/
-To install Certificate in AVD
-Settings
-→ Security & privacy
-→ More security & privacy
-→ Encryption & credentials
-→ Install a certificate
-→ CA certificate
-In AVD we can see burpcer.der certificate
+#lambda to dynamodb
+import boto3
+from uuid import uuid4
+def lambda_handler(event, context):
+    s3 = boto3.client("s3")
+    dynamodb = boto3.resource('dynamodb')
+    if 'Records' in event:
+        for record in event['Records']:
+            bucket_name = record['s3']['bucket']['name']
+            object_key = record['s3']['object']['key']
+            size = record['s3']['object'].get('size', -1)
+            event_name = record.get('eventName', 'Unknown')
+            event_time = record.get('eventTime', 'Unknown')
+            dynamoTable = dynamodb.Table('newtable')
+            dynamoTable.put_item(
+                Item={
+                    'unique': str(uuid4()),
+                    'Bucket': bucket_name,
+                    'Object': object_key,
+                    'Size': size,
+                    'Event': event_name,
+                    'EventTime': event_time
+                }
+            )
+    else:
+        print("No Records key found in event")
 
-admin@juice-sh.op
-admin123
+//access policy -> s3 to sns
+{ 
+  "Version": "2008-10-17", 
+  "Id": "__default_policy_ID", 
+  "Statement": [ 
+    { 
+      "Sid": "__default_statement_ID", 
+      "Effect": "Allow", 
+      "Principal": { 
+        "AWS": "*" 
+ }, 
+      "Action": [ 
+        "SNS:Publish", 
+        "SNS:RemovePermission", 
+        "SNS:SetTopicAttributes", 
+        "SNS:DeleteTopic", 
+        "SNS:ListSubscriptionsByTopic", 
+        "SNS:GetTopicAttributes", 
+        "SNS:AddPermission", 
+        "SNS:Subscribe" 
+      ], 
+      "Resource": "arn:aws:sns:us-east-1:352917280532:MyEmailTopic", 
+      "Condition": { 
+        "StringEquals": { 
+          "AWS:SourceAccount": "352917280532" 
+        } 
+      } 
+    }, 
+    { 
+      "Sid": "AllowS3Publish", 
+      "Effect": "Allow", 
+      "Principal": { 
+        "Service": "s3.amazonaws.com"
+   }, 
+      "Action": "SNS:Publish", 
+      "Resource": "arn:aws:sns:us-east-1:352917280532:MyEmailTopic", 
+      "Condition": { 
+        "ArnLike": { 
+          "aws:SourceArn": "arn:aws:s3:::my-upload-bucket-2027-28" 
+        }, 
+        "StringEquals": { 
+          "aws:SourceAccount": "352917280532" 
+        } 
+      } 
+    } 
+  ] 
+} 
 
-echo "Cybersecurity Lab Evidence" > evidence.txt
-dd if=/dev/zero of=practice_disk.dd bs=1M count=100
-mkfs.ext4 practice_disk.dd
-sudo apt install dc3dd
-sudo dc3dd if=practice_disk.dd of=disk_image.dd hash=md5 log=acquisition.log
-ls -lh /home/kali/disk_image.dd
-cat /home/kali/acquisition.log
-sudo autopsy
+//sqs - access policy
+{ 
+  "Version": "2012-10-17", 
+  "Id": "__default_policy_ID", 
+  "Statement": [ 
+    { 
+      "Sid": "__owner_statement", 
+         "Effect": "Allow",
+  "Principal": { 
+        "AWS": "arn:aws:iam::352917280532:root" 
+      }, 
+      "Action": "SQS:*", 
+      "Resource": "arn:aws:sqs:us-east-1:352917280532:MyS3Queue" 
+    }, 
+    { 
+      "Sid": "Allow-SNS-SendMessage", 
+      "Effect": "Allow", 
+      "Principal": { 
+        "Service": "sns.amazonaws.com" 
+      }, 
+      "Action": "SQS:SendMessage", 
+      "Resource": "arn:aws:sqs:us-east-1:352917280532:MyS3Queue", 
+      "Condition": { 
+        "ArnEquals": { 
+          "aws:SourceArn": "arn:aws:sns:us-east-1:352917280532:MyS3SNSTopic" 
+        } 
+      } 
+    } 
+  ] 
+}  
 
-cd /var/log
-ls
-journalctl | grep "Failed"
-journalctl | grep ssh
-journalctl | grep -i error
-cd /var/log/apache2 ls
-grep "404" /var/log/apache2/access.log
-sudo journalctl -f
-less /var/log/dpkg.log
-sudo apt install openssh-server –y
-sudo service ssh start
-ip a
-ssh fakeuser@localhost
-journalctl | grep "Failed password"
-journalctl | grep "Failed password" | awk '{print $11}'
-journalctl | grep "Failed password" | awk '{print $11}' | sort
-| uniq -c | sort -nr
+//sns-s3-sns-sqs-lambda
+{ 
+  "Version": "2012-10-17", 
+  "Id": "__default_policy_ID", 
+  "Statement": [ 
+    { 
+      "Sid": "__default_statement_ID", 
+      "Effect": "Allow", 
+      "Principal": { 
+        "AWS": "*" 
+      }, 
+      "Action": [ 
+        "SNS:Publish", 
+        "SNS:RemovePermission", 
+        "SNS:SetTopicAttributes", 
+        "SNS:DeleteTopic", 
+        "SNS:ListSubscriptionsByTopic", 
+        "SNS:GetTopicAttributes", 
+        "SNS:AddPermission", 
+        "SNS:Subscribe" 
+      ],
+     "Resource": "arn:aws:sns:us-east-1:352917280532:MyS3SNSTopic",
+Condition": { 
+        "StringEquals": { 
+          "AWS:SourceAccount": "352917280532" 
+        } 
+      } 
+    }, 
+    { 
+      "Sid": "AllowS3Publish", 
+      "Effect": "Allow", 
+      "Principal": { 
+ 
+        "Service": "s3.amazonaws.com" 
+      }, 
+      "Action": "SNS:Publish", 
+      "Resource": "arn:aws:sns:us-east-1:352917280532:MyS3SNSTopic", 
+      "Condition": { 
+        "ArnLike": { 
+          "aws:SourceArn": "arn:aws:s3:::mys3eventbucket1234salaar" 
+        }, 
+        "StringEquals": { 
+          "aws:SourceAccount": "352917280532" 
+        } 
+      } 
+    } 
+  ] 
+}
 
+//lambda code for sqs
+def lambda_handler(event, context): 
+    for record in event['Records']: 
+        print("Message received from SQS:") 
+        print(record['body']) 
+    return { 
+        'statusCode': 200, 
+        'body': 'Message processed successfully' 
+    } 
